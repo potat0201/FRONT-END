@@ -1,0 +1,44 @@
+.login-register {
+  align-items: flex-start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(280px, 360px) auto minmax(360px, 1fr);
+  max-width: 980px;
+}
+
+.auth-panel {
+  background: #ffffff;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.registration-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.registration-description {
+  grid-column: 1 / -1;
+}
+
+.auth-message {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .login-register {
+    grid-template-columns: 1fr;
+  }
+
+  .login-register .MuiDivider-root {
+    display: none;
+  }
+}
+
+@media (max-width: 599px) {
+  .registration-grid {
+    grid-template-columns: 1fr;
+  }
+}

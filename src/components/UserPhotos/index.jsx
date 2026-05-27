@@ -1,88 +1,241 @@
-import React, { useState, useEffect } from "react";
-import { Typography, Divider, Button, Box } from "@mui/material";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import fetchModel from "../../lib/fetchModelData";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Divider,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 
-function UserPhotos({ advancedEnabled }) {
-  const { userId, photoIndex } = useParams();
-  const navigate = useNavigate();
-  const [photos, setPhotos] = useState(null);
+import "./styles.css";
+import useModelData from "../../hooks/useModelData";
 
-  const currentIndex = parseInt(photoIndex || "0", 10);
+function formatDate(value) {
+  return new Date(value).toLocaleString();
+}
 
-  useEffect(() => {
-    fetchModel("/photo/photosOfUser/" + userId)
-      .then((data) => setPhotos(data))
-      .catch((err) => console.error(err));
-  }, [userId]);
+function CommentList({ comments = [] }) {
+  if (comments.length === 0) {
+    return (
+      <Typography color="text.secondary" sx={{ mt: 1 }}>
+        No comments.
+      </Typography>
+    );
+  }
 
-  if (!photos) return <Typography>Loading...</Typography>;
-  if (photos.length === 0) return <Typography>User has no photos.</Typography>;
+  return (
+    <Box className="comment-list">
+      {comments.map((comment) => {
+        const user = comment.user || {};
+        const name =
+          [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+          "Unknown user";
 
-  const handleStep = (newIndex) => {
-    navigate(`/photos/${userId}/${newIndex}`);
+        return (
+          <Box className="comment-item" key={comment._id}>
+            {user._id ? (
+              <RouterLink to={`/users/${user._id}`} className="comment-user">
+                {name}
+              </RouterLink>
+            ) : (
+              <strong>Unknown user</strong>
+            )}
+            <Typography variant="caption" color="text.secondary" display="block">
+              {formatDate(comment.date_time)}
+            </Typography>
+            <Typography variant="body2">{comment.comment}</Typography>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
+function PhotoBlock({ children, photo }) {
+  return (
+    <Box className="photo-block">
+      <img
+        src={`/images/${photo.file_name}`}
+        alt={photo.file_name}
+        className="photo-image"
+      />
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        Posted: {formatDate(photo.date_time)}
+      </Typography>
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Comments
+      </Typography>
+      <CommentList comments={photo.comments} />
+      {children}
+    </Box>
+  );
+}
+
+function AddCommentForm({ onSubmit }) {
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+
+    if (!comment.trim()) {
+      setError("Comment cannot be empty.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit(comment.trim());
+      setComment("");
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  return (
+    <Box className="add-comment" component="form" onSubmit={handleSubmit}>
+      <TextField
+        label="Add a comment"
+        minRows={2}
+        multiline
+        onChange={(event) => setComment(event.target.value)}
+        value={comment}
+        fullWidth
+      />
+      {error && <Alert severity="error">{error}</Alert>}
+      <Button disabled={isSubmitting} type="submit" variant="contained">
+        Add Comment
+      </Button>
+    </Box>
+  );
+}
+
+function PhotoWithComments({ currentUser, onAddComment, photo }) {
+  return (
+    <PhotoBlock photo={photo}>
+      {currentUser && (
+        <AddCommentForm
+          onSubmit={(comment) => onAddComment(photo._id, comment)}
+        />
+      )}
+    </PhotoBlock>
+  );
+}
+
+function UserPhotos({
+  advancedEnabled,
+  currentUser,
+  onAddComment,
+  refreshKey,
+  scrollContainerRef,
+}) {
+  const { userId, photoIndex } = useParams();
+  const navigate = useNavigate();
+  const { data, isLoading, error } = useModelData(
+    `/photosOfUser/${userId}`,
+    refreshKey
+  );
+  const photos = data || [];
+
+  const requestedIndex = Number.parseInt(photoIndex || "0", 10);
+  const currentIndex = Number.isNaN(requestedIndex) ? 0 : requestedIndex;
+  const activeIndex = useMemo(() => {
+    if (photos.length === 0) {
+      return 0;
+    }
+    return Math.min(Math.max(currentIndex, 0), photos.length - 1);
+  }, [currentIndex, photos.length]);
+
+  useEffect(() => {
+    if (
+      advancedEnabled &&
+      photos.length > 0 &&
+      currentIndex !== activeIndex
+    ) {
+      navigate(`/photos/${userId}/${activeIndex}`, { replace: true });
+    }
+  }, [
+    activeIndex,
+    advancedEnabled,
+    currentIndex,
+    navigate,
+    photos.length,
+    userId,
+  ]);
+
+  useEffect(() => {
+    scrollContainerRef?.current?.scrollTo({ top: 0, left: 0 });
+    window.scrollTo({ top: 0, left: 0 });
+  }, [activeIndex, advancedEnabled, scrollContainerRef, userId]);
+
+  if (isLoading) {
+    return <CircularProgress size={28} />;
+  }
+
+  if (error) {
+    return <Alert severity="error">Cannot load photos: {error.message}</Alert>;
+  }
+
+  if (photos.length === 0) {
+    return <Alert severity="info">This user has no photos.</Alert>;
+  }
+
   if (advancedEnabled) {
-    const photo = photos[currentIndex] || photos[0];
+    const photo = photos[activeIndex];
+
     return (
-      <div style={{ padding: "20px", textAlign: "center" }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Button 
-            variant="contained" 
-            disabled={currentIndex === 0} 
-            onClick={() => handleStep(currentIndex - 1)}
+      <Box className="photos-view">
+        <Box className="photo-stepper">
+          <Button
+            variant="contained"
+            disabled={activeIndex === 0}
+            onClick={() => navigate(`/photos/${userId}/${activeIndex - 1}`)}
           >
             Back
           </Button>
-          
+
           <Typography variant="h6">
-            Photo {currentIndex + 1} of {photos.length}
+            Photo {activeIndex + 1} of {photos.length}
           </Typography>
 
-          <Button 
-            variant="contained" 
-            disabled={currentIndex === photos.length - 1} 
-            onClick={() => handleStep(currentIndex + 1)}
+          <Button
+            variant="contained"
+            disabled={activeIndex === photos.length - 1}
+            onClick={() => navigate(`/photos/${userId}/${activeIndex + 1}`)}
           >
             Next
           </Button>
         </Box>
 
-        <img 
-          src={"/images/" + photo.file_name} 
-          alt="User" 
-          style={{ maxWidth: "100%", maxHeight: "500px", borderRadius: "8px" }} 
+        <PhotoWithComments
+          currentUser={currentUser}
+          onAddComment={onAddComment}
+          photo={photo}
         />
-        
-        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-          Posted on: {new Date(photo.date_time).toLocaleString()}
-        </Typography>
-
-        <Typography variant="h6" align="left" sx={{ mt: 3 }}>Comments:</Typography>
-        {photo.comments ? photo.comments.map((c) => (
-          <Box key={c._id} textAlign="left" bgcolor="#f9f9f9" p={1} mt={1}>
-            <Link to={`/users/${c.user._id}`}>
-              <strong>{c.user.first_name} {c.user.last_name}</strong>
-            </Link>
-            <Typography variant="caption" display="block">{new Date(c.date_time).toLocaleString()}</Typography>
-            <Typography variant="body1">{c.comment}</Typography>
-          </Box>
-        )) : <Typography align="left">No comments.</Typography>}
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div style={{ padding: "20px" }}>
+    <Box className="photos-view">
       {photos.map((photo) => (
-        <div key={photo._id} style={{ marginBottom: "40px" }}>
-          <img src={"/images/" + photo.file_name} alt="User" style={{ width: "400px" }} />
-          <Typography variant="body2">Posted: {new Date(photo.date_time).toLocaleString()}</Typography>
-          <Divider sx={{ my: 2 }} />
-        </div>
+        <Fragment key={photo._id}>
+          <PhotoWithComments
+            currentUser={currentUser}
+            onAddComment={onAddComment}
+            photo={photo}
+          />
+          <Divider sx={{ my: 3 }} />
+        </Fragment>
       ))}
-    </div>
+    </Box>
   );
 }
 

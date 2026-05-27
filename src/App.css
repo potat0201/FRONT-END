@@ -1,8 +1,31 @@
-.main-topbar-buffer {
-  margin-top: 70px;
+.app-root {
+  min-height: 100vh;
+  background: #f7f8fb;
 }
 
 .main-grid-item {
-  height: calc(100vh - 85px);
-  padding: 10px;
+  height: calc(100vh - 64px);
+  overflow: auto;
+  padding: 18px;
+}
+
+.main-sidebar {
+  background: #ffffff;
+  border-right: 1px solid #d9dee7;
+}
+
+.main-content {
+  background: #f7f8fb;
+}
+
+@media (max-width: 599px) {
+  .main-grid-item {
+    height: auto;
+    min-height: auto;
+  }
+
+  .main-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #d9dee7;
+  }
 }

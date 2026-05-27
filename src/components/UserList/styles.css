@@ -1,0 +1,44 @@
+.user-list-title {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.user-list-row {
+  gap: 10px;
+}
+
+.user-counts {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.count-bubble {
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  height: 24px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 24px;
+  padding: 0 7px;
+}
+
+.count-bubble:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.photo-count {
+  background: #2e7d32;
+}
+
+.comment-count {
+  background: #c62828;
+}

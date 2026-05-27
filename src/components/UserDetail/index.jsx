@@ -1,53 +1,54 @@
-import React, { useState, useEffect } from "react"; 
-import { Typography } from "@mui/material";
-import { useParams, Link } from "react-router-dom";
+import { Alert, Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Link as RouterLink, useParams } from "react-router-dom";
 
 import "./styles.css";
-import fetchModel from "../../lib/fetchModelData";
+import useModelData from "../../hooks/useModelData";
 
-function UserDetail() {
-    const { userId } = useParams(); 
-    const [userInfo, setUserInfo] = useState(null); 
+function UserDetail({ refreshKey }) {
+  const { userId } = useParams();
+  const { data: userInfo, isLoading, error } = useModelData(
+    `/user/${userId}`,
+    refreshKey
+  );
 
-    useEffect(() => {
-        fetchModel("/user/" + userId)
-            .then((data) => {
-                setUserInfo(data); 
-            })
-            .catch((error) => {
-                console.error("Lỗi khi lấy chi tiết người dùng:", error);
-            });
-    }, [userId]); 
+  if (isLoading) {
+    return <CircularProgress size={28} />;
+  }
 
-    if (!userInfo) {
-        return <Typography>Loading user details...</Typography>;
-    }
+  if (error) {
+    return <Alert severity="error">Cannot load user: {error.message}</Alert>;
+  }
 
-    return (
-        <div style={{ padding: "20px" }}>
-            <Typography variant="h4">
-                {userInfo.first_name} {userInfo.last_name}
-            </Typography>
-            
-            <Typography variant="body1" style={{ marginTop: "10px" }}>
-                <strong>Location:</strong> {userInfo.location}
-            </Typography>
-            
-            <Typography variant="body1" style={{ marginTop: "10px" }}>
-                <strong>Occupation:</strong> {userInfo.occupation}
-            </Typography>
-            
-            <Typography variant="body1" style={{ marginTop: "10px" }}>
-                <strong>Description:</strong> {userInfo.description}
-            </Typography>
+  if (!userInfo) {
+    return <Alert severity="warning">User not found.</Alert>;
+  }
 
-            <br />
-            {/* Link dẫn đến trang xem ảnh */}
-            <Link to={"/photos/" + userId}>
-                View Photos
-            </Link>
-        </div>
-    );
+  return (
+    <Box className="user-detail">
+      <Typography variant="h4" gutterBottom>
+        {userInfo.first_name} {userInfo.last_name}
+      </Typography>
+
+      <Typography variant="body1">
+        <strong>Location:</strong> {userInfo.location}
+      </Typography>
+      <Typography variant="body1">
+        <strong>Occupation:</strong> {userInfo.occupation}
+      </Typography>
+      <Typography variant="body1">
+        <strong>Description:</strong> {userInfo.description}
+      </Typography>
+
+      <Button
+        component={RouterLink}
+        to={`/photos/${userId}`}
+        variant="contained"
+        sx={{ mt: 3 }}
+      >
+        View Photos
+      </Button>
+    </Box>
+  );
 }
 
 export default UserDetail;

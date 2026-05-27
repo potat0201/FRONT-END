@@ -1,0 +1,54 @@
+.photos-view {
+  max-width: 860px;
+}
+
+.photo-stepper {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.photo-block {
+  background: #ffffff;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.photo-image {
+  border-radius: 6px;
+  display: block;
+  max-height: 560px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.comment-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.comment-item {
+  background: #f6f8fb;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.comment-user {
+  color: #1565c0;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.add-comment {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.add-comment .MuiButton-root {
+  justify-self: start;
+}
