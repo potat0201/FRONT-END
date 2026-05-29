@@ -1,7 +1,6 @@
-import { getAuthToken } from "./session";
+import { API_BASE_URL } from "./apiConfig";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:8081/api";
+export const UNAUTHORIZED_EVENT = "photoApp:unauthorized";
 
 function buildApiUrl(modelUrl, addCacheBuster = false) {
   const apiBaseUrl = API_BASE_URL.replace(/\/+$/, "");
@@ -16,11 +15,6 @@ function buildApiUrl(modelUrl, addCacheBuster = false) {
   }
 
   return apiUrl.toString();
-}
-
-function getAuthHeaders() {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function buildRequestBody(body, headers) {
@@ -62,7 +56,6 @@ export async function apiRequest(modelUrl, options = {}) {
   const method = options.method || "GET";
   const headers = {
     Accept: "application/json",
-    ...getAuthHeaders(),
     ...options.headers,
   };
   const body = buildRequestBody(options.body, headers);
@@ -76,6 +69,10 @@ export async function apiRequest(modelUrl, options = {}) {
   const responseBody = await readResponseBody(response);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+    }
+
     const error = new Error(getResponseMessage(response, responseBody));
     error.status = response.status;
     throw error;

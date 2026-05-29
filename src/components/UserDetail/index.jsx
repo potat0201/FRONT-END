@@ -1,15 +1,28 @@
+import { useEffect } from "react";
 import { Alert, Box, Button, CircularProgress, Typography } from "@mui/material";
 import { Link as RouterLink, useParams } from "react-router-dom";
 
 import "./styles.css";
 import useModelData from "../../hooks/useModelData";
 
-function UserDetail({ refreshKey }) {
+function UserDetail({ onContextChange, refreshKey }) {
   const { userId } = useParams();
   const { data: userInfo, isLoading, error } = useModelData(
     `/user/${userId}`,
     refreshKey
   );
+
+  useEffect(() => {
+    onContextChange("User Details");
+  }, [onContextChange, userId]);
+
+  useEffect(() => {
+    if (userInfo) {
+      onContextChange(
+        `User Details: ${userInfo.first_name} ${userInfo.last_name}`
+      );
+    }
+  }, [onContextChange, userInfo]);
 
   if (isLoading) {
     return <CircularProgress size={28} />;

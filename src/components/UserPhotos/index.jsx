@@ -11,11 +11,9 @@ import {
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 
 import "./styles.css";
+import formatDate from "../../lib/formatDate";
+import { buildImageUrl } from "../../lib/imageUrl";
 import useModelData from "../../hooks/useModelData";
-
-function formatDate(value) {
-  return new Date(value).toLocaleString();
-}
 
 function CommentList({ comments = [] }) {
   if (comments.length === 0) {
@@ -58,7 +56,7 @@ function PhotoBlock({ children, photo }) {
   return (
     <Box className="photo-block">
       <img
-        src={`/images/${photo.file_name}`}
+        src={buildImageUrl(photo.file_name)}
         alt={photo.file_name}
         className="photo-image"
       />
@@ -133,6 +131,7 @@ function UserPhotos({
   advancedEnabled,
   currentUser,
   onAddComment,
+  onContextChange,
   refreshKey,
   scrollContainerRef,
 }) {
@@ -142,6 +141,7 @@ function UserPhotos({
     `/photosOfUser/${userId}`,
     refreshKey
   );
+  const { data: userInfo } = useModelData(`/user/${userId}`, refreshKey);
   const photos = data || [];
 
   const requestedIndex = Number.parseInt(photoIndex || "0", 10);
@@ -152,6 +152,16 @@ function UserPhotos({
     }
     return Math.min(Math.max(currentIndex, 0), photos.length - 1);
   }, [currentIndex, photos.length]);
+
+  useEffect(() => {
+    onContextChange("Photos");
+  }, [onContextChange, userId]);
+
+  useEffect(() => {
+    if (userInfo) {
+      onContextChange(`Photos of ${userInfo.first_name} ${userInfo.last_name}`);
+    }
+  }, [onContextChange, userInfo]);
 
   useEffect(() => {
     if (

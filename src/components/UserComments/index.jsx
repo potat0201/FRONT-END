@@ -1,17 +1,15 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Alert, Box, CircularProgress, Typography } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 
 import "./styles.css";
+import formatDate from "../../lib/formatDate";
+import { buildImageUrl } from "../../lib/imageUrl";
 import buildUserActivity from "../../lib/userActivity";
 import useAllUserPhotos from "../../hooks/useAllUserPhotos";
 import useModelData from "../../hooks/useModelData";
 
-function formatDate(value) {
-  return new Date(value).toLocaleString();
-}
-
-function UserComments({ advancedEnabled, refreshKey }) {
+function UserComments({ advancedEnabled, onContextChange, refreshKey }) {
   const navigate = useNavigate();
   const { userId } = useParams();
   const {
@@ -30,6 +28,18 @@ function UserComments({ advancedEnabled, refreshKey }) {
     isLoading: isPhotosLoading,
     error: photosError,
   } = useAllUserPhotos(users, true, refreshKey);
+
+  useEffect(() => {
+    onContextChange("Comments");
+  }, [onContextChange, userId]);
+
+  useEffect(() => {
+    if (userInfo) {
+      onContextChange(
+        `Comments by ${userInfo.first_name} ${userInfo.last_name}`
+      );
+    }
+  }, [onContextChange, userInfo]);
 
   const authoredComments = useMemo(() => {
     const activityByUserId = buildUserActivity(users, photosByUserId);
@@ -88,7 +98,7 @@ function UserComments({ advancedEnabled, refreshKey }) {
               <img
                 alt={comment.photo.file_name}
                 className="comment-thumbnail"
-                src={`/images/${comment.photo.file_name}`}
+                src={buildImageUrl(comment.photo.file_name)}
               />
               <span className="comment-result-body">
                 <Typography variant="caption" color="text.secondary">

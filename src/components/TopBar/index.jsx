@@ -7,35 +7,17 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { useLocation } from "react-router-dom";
-
-function getContextText(pathname) {
-  if (pathname.includes("/users/")) {
-    return "User Details";
-  }
-
-  if (pathname.includes("/comments/")) {
-    return "Comments";
-  }
-
-  if (pathname.includes("/photos/")) {
-    return "Photos";
-  }
-
-  return "Welcome";
-}
 
 function TopBar({
   advancedEnabled,
+  contextText,
   currentUser,
   onLogout,
   onPhotoUpload,
   setAdvancedEnabled,
 }) {
-  const location = useLocation();
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
-  const contextText = getContextText(location.pathname);
 
   const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
@@ -94,14 +76,14 @@ function TopBar({
               Logout
             </Button>
           </>
-        ) : (
-          <Typography variant="body1" sx={{ marginLeft: "auto" }} noWrap>
-            Please Login
-          </Typography>
-        )}
+        ) : null}
 
-        <Typography variant="h6" noWrap>
-          {contextText}
+        <Typography
+          variant="h6"
+          sx={{ marginLeft: currentUser ? 0 : "auto" }}
+          noWrap
+        >
+          {contextText || "Welcome"}
         </Typography>
       </Toolbar>
     </AppBar>

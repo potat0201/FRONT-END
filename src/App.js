@@ -1,6 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Grid, Toolbar } from "@mui/material";
-import { HashRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import {
+  HashRouter,
+  Navigate,
+  Route,
+  Routes,
+  useNavigate,
+} from "react-router-dom";
 
 import "./App.css";
 import LoginRegister from "./components/LoginRegister";
@@ -9,18 +15,15 @@ import UserComments from "./components/UserComments";
 import UserDetail from "./components/UserDetail";
 import UserList from "./components/UserList";
 import UserPhotos from "./components/UserPhotos";
-import { postFormData, postJson } from "./lib/fetchModelData";
 import {
-  clearSession,
-  loadCurrentUser,
-  saveSession,
-} from "./lib/session";
+  postFormData,
+  postJson,
+  UNAUTHORIZED_EVENT,
+} from "./lib/fetchModelData";
+import { clearSession, loadCurrentUser, saveSession } from "./lib/session";
 
-function getLoginSession(loginResponse) {
-  const user = loginResponse.user || loginResponse;
-  const token = loginResponse.token || loginResponse.jwt || loginResponse.accessToken;
-
-  return { user, token };
+function getUserDisplayName(user) {
+  return [user?.first_name, user?.last_name].filter(Boolean).join(" ");
 }
 
 function AppShell() {
@@ -29,16 +32,38 @@ function AppShell() {
   const [advancedEnabled, setAdvancedEnabled] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
   const [appMessage, setAppMessage] = useState(null);
+  const [contextText, setContextText] = useState(
+    currentUser ? getUserDisplayName(currentUser) : "Please Login"
+  );
   const contentRef = useRef(null);
 
   const refreshData = () => setDataVersion((version) => version + 1);
 
-  const handleLogin = async (credentials) => {
-    const loginResponse = await postJson("/admin/login", credentials);
-    const { user, token } = getLoginSession(loginResponse);
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearSession();
+      setCurrentUser(null);
+      setAdvancedEnabled(false);
+      setContextText("Please Login");
+      setAppMessage({
+        severity: "warning",
+        text: "Your session expired. Please log in again.",
+      });
+      navigate("/");
+    };
 
-    saveSession(user, token);
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => {
+      window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
+  }, [navigate]);
+
+  const handleLogin = async (credentials) => {
+    const user = await postJson("/admin/login", credentials);
+
+    saveSession(user);
     setCurrentUser(user);
+    setContextText(getUserDisplayName(user));
     setAppMessage(null);
     refreshData();
     return user;
@@ -53,6 +78,7 @@ function AppShell() {
       clearSession();
       setCurrentUser(null);
       setAdvancedEnabled(false);
+      setContextText("Please Login");
       setAppMessage(null);
       navigate("/");
     }
@@ -81,6 +107,7 @@ function AppShell() {
     <div className="app-root">
       <TopBar
         advancedEnabled={advancedEnabled}
+        contextText={contextText}
         currentUser={currentUser}
         onLogout={handleLogout}
         onPhotoUpload={handlePhotoUpload}
@@ -128,13 +155,19 @@ function AppShell() {
                 />
                 <Route
                   path="/users/:userId"
-                  element={<UserDetail refreshKey={dataVersion} />}
+                  element={
+                    <UserDetail
+                      onContextChange={setContextText}
+                      refreshKey={dataVersion}
+                    />
+                  }
                 />
                 <Route
                   path="/comments/:userId"
                   element={
                     <UserComments
                       advancedEnabled={advancedEnabled}
+                      onContextChange={setContextText}
                       refreshKey={dataVersion}
                     />
                   }
@@ -146,6 +179,7 @@ function AppShell() {
                       advancedEnabled={advancedEnabled}
                       currentUser={currentUser}
                       onAddComment={handleAddComment}
+                      onContextChange={setContextText}
                       refreshKey={dataVersion}
                       scrollContainerRef={contentRef}
                     />
@@ -158,6 +192,7 @@ function AppShell() {
                       advancedEnabled={advancedEnabled}
                       currentUser={currentUser}
                       onAddComment={handleAddComment}
+                      onContextChange={setContextText}
                       refreshKey={dataVersion}
                       scrollContainerRef={contentRef}
                     />
